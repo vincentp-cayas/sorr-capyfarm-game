@@ -74,6 +74,9 @@ def compute_strategy_envelopes(blocks):
             vals, _, _, bust, _ = simulator.simulate_full_game(allocs, seq)
             if bust:
                 bust_count += 1
+                # Ne pas inclure la valeur négative de faillite dans l'enveloppe
+                if len(vals) > 0 and vals[-1] < 0:
+                    vals = vals[:-1]
             # Pad the array with zeros if the simulation busted early
             if len(vals) < 31:
                 vals.extend([0] * (31 - len(vals)))
@@ -93,7 +96,7 @@ def compute_strategy_envelopes(blocks):
 # ============================================================================
 class PortfolioSimulator:
     def __init__(self, initial_capital=10000, annual_savings=5000, purchase_year=15, 
-                 purchase_amount=75000, total_years=30):
+                 purchase_amount=85000, total_years=30):
         self.initial_capital = initial_capital
         self.annual_savings = annual_savings
         self.purchase_year = purchase_year
@@ -127,6 +130,10 @@ class PortfolioSimulator:
             global_year = global_year_start + len(yearly_values)  # Current year in the overall simulation
             if global_year == self.purchase_year and current_value < self.purchase_amount:
                 bust = True
+                current_value -= self.purchase_amount
+                yearly_values.append(current_value)
+                yearly_stocks.append(0)
+                yearly_cash.append(current_value)
                 break
             
             # Deduct purchase
@@ -170,6 +177,10 @@ class PortfolioSimulator:
                 global_year = len(yearly_values)
                 if global_year == self.purchase_year and current_value < self.purchase_amount:
                     bust = True
+                    current_value -= self.purchase_amount
+                    yearly_values.append(current_value)
+                    yearly_stocks.append(0)
+                    yearly_cash.append(current_value)
                     break
                 
                 # Deduct purchase
@@ -284,7 +295,7 @@ def main():
         st.info("""
         • **Magot de départ** : 10 000 €
         • **Épargne annuelle** : 5 000 €/an
-        • **L'objectif décisif** : Sortir 75 000 € à l'année 15.
+        • **L'objectif décisif** : Sortir 85 000 € à l'année 15.
         • **6 décisions** : Vous ajustez la voilure (actions/monétaire) tous les 5 ans.
         • **Le marché** : 5 années historiques tirées au sort (1995-2025). Pas de triche.
         • **Score** : Vos pépettes finales (0 si vous finissez sous les ponts).
@@ -299,7 +310,7 @@ def main():
         Découvrez par la pratique le fameux **Risque de Séquence des Rendements**.[1]
         
         **Votre Mission :**
-        - Dompter la volatilité pour réunir 75 000 € dans 15 ans et acheter votre élevage de capybaras.
+        - Dompter la volatilité pour réunir 85 000 € dans 15 ans et acheter votre élevage de capybaras.
         - Faire grossir votre caillasse d'ici l'année 30 pour faire un don généreux à la Fondation Capybara.
         
         *L'astuce ? Vous ne pouvez pas prédire le marché. Mais vous pouvez ajuster vos voiles en choisissant votre niveau de risque à chaque manche.*
@@ -443,7 +454,7 @@ def main():
                             all_cash_values = [10000]
                             for year in range(1, len(st.session_state.all_yearly_values)):
                                 if year == 15:
-                                    all_cash_values.append(all_cash_values[-1] + 5000 - 75000)
+                                    all_cash_values.append(all_cash_values[-1] + 5000 - 85000)
                                 else:
                                     all_cash_values.append(all_cash_values[-1] + 5000)
                             fig.add_trace(go.Scatter(
@@ -460,24 +471,24 @@ def main():
                             mode='lines', line=dict(dash='dash', color='teal')
                         ))
                     
-                        if show_100stocks:
-                            blocks_seq = [blocks[i]['returns'] for i in st.session_state.selected_blocks]
-                            alloc_seq = [100] * num_periods
-                            vals_100, _, _, _, _ = simulator.simulate_full_game(alloc_seq, blocks_seq)
-                            fig.add_trace(go.Scatter(
-                                x=list(range(len(vals_100))), y=vals_100, name="100% Actions",
-                                mode='lines', line=dict(dash='dash', color='purple')
-                            ))
-                        
-                        if show_5050:
-                            blocks_seq = [blocks[i]['returns'] for i in st.session_state.selected_blocks]
-                            alloc_seq = [50] * num_periods
-                            vals_5050, _, _, _, _ = simulator.simulate_full_game(alloc_seq, blocks_seq)
-                            fig.add_trace(go.Scatter(
-                                x=list(range(len(vals_5050))), y=vals_5050, name="50% Actions",
-                                mode='lines', line=dict(dash='dash', color='orange')
-                            ))
-                        
+                    if show_100stocks:
+                        blocks_seq = [blocks[i]['returns'] for i in st.session_state.selected_blocks]
+                        alloc_seq = [100] * num_periods
+                        vals_100, _, _, _, _ = simulator.simulate_full_game(alloc_seq, blocks_seq)
+                        fig.add_trace(go.Scatter(
+                            x=list(range(len(vals_100))), y=vals_100, name="100% Actions",
+                            mode='lines', line=dict(dash='dash', color='purple')
+                        ))
+                    
+                    if show_5050:
+                        blocks_seq = [blocks[i]['returns'] for i in st.session_state.selected_blocks]
+                        alloc_seq = [50] * num_periods
+                        vals_5050, _, _, _, _ = simulator.simulate_full_game(alloc_seq, blocks_seq)
+                        fig.add_trace(go.Scatter(
+                            x=list(range(len(vals_5050))), y=vals_5050, name="50% Actions",
+                            mode='lines', line=dict(dash='dash', color='orange')
+                        ))
+                    
                     if show_75stocks:
                         blocks_seq = [blocks[i]['returns'] for i in st.session_state.selected_blocks]
                         alloc_seq = [75] * num_periods
@@ -487,25 +498,25 @@ def main():
                             mode='lines', line=dict(dash='dash', color='brown')
                         ))
                     
-                        if show_target:
-                            blocks_seq = [blocks[i]['returns'] for i in st.session_state.selected_blocks]
-                            if num_periods >= 6: alloc_seq = [75, 50, 25, 100, 100, 100]
-                            elif num_periods == 5: alloc_seq = [75, 50, 25, 100, 100]
-                            elif num_periods == 4: alloc_seq = [75, 50, 25, 100]
-                            elif num_periods == 3: alloc_seq = [75, 50, 25]
-                            elif num_periods == 2: alloc_seq = [75, 50]
-                            else: alloc_seq = [75]
-                            vals_target, _, _, _, _ = simulator.simulate_full_game(alloc_seq, blocks_seq)
-                            fig.add_trace(go.Scatter(
-                                x=list(range(len(vals_target))), y=vals_target, name="Glidepath (75/50/25/100)",
-                                mode='lines', line=dict(dash='dash', color='red')
-                            ))
+                    if show_target:
+                        blocks_seq = [blocks[i]['returns'] for i in st.session_state.selected_blocks]
+                        if num_periods >= 6: alloc_seq = [75, 50, 25, 100, 100, 100]
+                        elif num_periods == 5: alloc_seq = [75, 50, 25, 100, 100]
+                        elif num_periods == 4: alloc_seq = [75, 50, 25, 100]
+                        elif num_periods == 3: alloc_seq = [75, 50, 25]
+                        elif num_periods == 2: alloc_seq = [75, 50]
+                        else: alloc_seq = [75]
+                        vals_target, _, _, _, _ = simulator.simulate_full_game(alloc_seq, blocks_seq)
+                        fig.add_trace(go.Scatter(
+                            x=list(range(len(vals_target))), y=vals_target, name="Glidepath (75/50/25/100)",
+                            mode='lines', line=dict(dash='dash', color='red')
+                        ))
                     
                     fig.add_vline(x=15, line_dash="dash", line_color="red", 
                                  annotation_text="Achat !", annotation_position="top right")
                     
-                    fig.add_hline(y=75000, line_dash="dash", line_color="orange",
-                                 annotation_text="Cible (75 k€)", annotation_position="right")
+                    fig.add_hline(y=85000, line_dash="dash", line_color="orange",
+                                 annotation_text="Cible (85 k€)", annotation_position="right")
                     
                     fig.update_layout(
                         title="Votre parcours de zinzins sur 30 Ans",
@@ -531,7 +542,7 @@ def main():
         st.subheader("Le hasard de la pioche (Votre Séquence)")
         st.markdown("""
         **Explication :** En investissement, la destination compte, mais le chemin aussi. 
-        Un krach boursier quand on accumule ses billes, c'est les soldes. Mais un krach juste avant de devoir décaisser 75 000 € pour vos capybaras (les séquences qui font transpirer), c'est la tuile absolue. 
+        Un krach boursier quand on accumule ses billes, c'est les soldes. Mais un krach juste avant de devoir décaisser 85 000 € pour vos capybaras (les séquences qui font transpirer), c'est la tuile absolue. 
         C’est ça, le risque de séquence : être forcé de vendre ses actifs dans le creux de la vague. Une fois ce cap périlleux passé, le but est de maximiser la taille de la boule de neige, puisqu'on ne risque plus la ruine.
         """)
         
@@ -673,13 +684,13 @@ def main():
         ))
         
         fig_env.add_vline(x=15, line_dash="dash", line_color="red", opacity=0.5, annotation_text="Achat")
-        fig_env.add_hline(y=75000, line_dash="dash", line_color="orange", opacity=0.5, annotation_text="Cible")
+        fig_env.add_hline(y=85000, line_dash="dash", line_color="orange", opacity=0.5, annotation_text="Cible")
         
         fig_env.update_layout(
             title=f"Éventail des résultats pour la stratégie : {selected_env_label}",
             xaxis_title="Année",
             yaxis_title="Caillasse en €",
-            yaxis_range=[0, 600000],
+            yaxis_range=[-50000, 600000],
             hovermode='x unified',
             height=500,
             template='plotly_white'
