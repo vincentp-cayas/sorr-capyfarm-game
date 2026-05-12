@@ -11,7 +11,7 @@ import itertools
 # PAGE CONFIGURATION
 # ============================================================================
 st.set_page_config(
-    page_title="Sequence of Return Risk Game",
+    page_title="Dompter la séquence des rendements. Et des capybaras.",
     page_icon="🦫",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -26,16 +26,8 @@ def load_returns_data():
     df = pd.read_csv('Returns.csv', sep=';')
     # Replace European decimal format (comma) with English format (dot)
     df['Real return'] = df['Real return'].astype(str).str.replace(',', '.').astype(float)
-    
-    # Automatically inject 1995-1999 data if it's missing from the CSV
-    if 1995 not in df['Year'].values:
-        extra_data = pd.DataFrame({
-            'Year': [1995, 1996, 1997, 1998, 1999],
-            'Real return': [0.129, 0.145, 0.282, 0.170, 0.457]
-        })
-        df = pd.concat([extra_data, df], ignore_index=True).sort_values('Year').reset_index(drop=True)
-        
     return df
+    
 
 @st.cache_data
 def extract_5year_blocks(returns_df):
@@ -60,7 +52,7 @@ def compute_strategy_envelopes(blocks):
         "75% Stocks": [75, 75, 75, 75, 75, 75],
         "50/50 Mix": [50, 50, 50, 50, 50, 50],
         "25% Stocks": [25, 25, 25, 25, 25, 25],
-        "Glidepath Strategy (75/50/25/100)": [75, 50, 25, 100, 100, 100]
+        "Pilotage du risque simple": [75, 50, 25, 100, 100, 100]
     }
     
     # Get all permutations of the 6 blocks
@@ -284,7 +276,7 @@ def main():
         "75% Stocks": [75, 75, 75, 75, 75, 75],
         "50/50 Mix": [50, 50, 50, 50, 50, 50],
         "25% Stocks": [25, 25, 25, 25, 25, 25],
-        "Glidepath Strategy (75/50/25/100)": [75, 50, 25, 100, 100, 100]
+        "Pilotage du risque simple": [75, 50, 25, 100, 100, 100]
     }
     
 
@@ -324,7 +316,7 @@ def main():
         
         col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
         with col_btn2:
-            if st.button("🎮 Prendre les commandes", use_container_width=True):
+            if st.button("🎮 Prendre les commandes", width="stretch"):
                 st.session_state.current_view = 'game'
                 st.rerun()
 
@@ -354,7 +346,7 @@ def main():
                     help="0% = 100% Monétaire (le matelas), 100% = 100% Actions (le grand 8)"
                 )
                 
-                if st.button("🎲 Voyons ce que les 5 prochaines années nous réservent", use_container_width=True):
+                if st.button("🎲 Voyons ce que les 5 prochaines années nous réservent", width="stretch"):
                     available_blocks = [b for i, b in enumerate(blocks) if i not in st.session_state.selected_blocks]
                     
                     if available_blocks:
@@ -398,7 +390,7 @@ def main():
                     st.write("Vous avez survécu aux montagnes russes et accumulé un très beau magot !")
                     st.metric("Taille finale de la boule de neige", f"{final_value:,.0f} €".replace(",", " "))
                 
-                if st.button("🔄 Rejouer", use_container_width=True):
+                if st.button("🔄 Rejouer", width="stretch"):
                     st.session_state.clear()
                     st.rerun()
         
@@ -423,12 +415,12 @@ def main():
                     show_75stocks = st.checkbox("75% Actions")
                 with col_c:
                     show_100stocks = st.checkbox("100% Actions")
-                    show_target = st.checkbox("Glidepath (75/50/25/100)")
+                    show_target = st.checkbox("Pilotage du risque simple")
                 
                 st.write("")
                 col_spacer, col_btn = st.columns([2, 1])
                 with col_btn:
-                    if st.button("📊 Les coulisses (Décortiquer)", use_container_width=True):
+                    if st.button("📊 Les coulisses (Décortiquer)", width="stretch"):
                         st.session_state.current_view = 'analysis'
                         st.rerun()
             
@@ -508,7 +500,7 @@ def main():
                         else: alloc_seq = [75]
                         vals_target, _, _, _, _ = simulator.simulate_full_game(alloc_seq, blocks_seq)
                         fig.add_trace(go.Scatter(
-                            x=list(range(len(vals_target))), y=vals_target, name="Glidepath (75/50/25/100)",
+                            x=list(range(len(vals_target))), y=vals_target, name="Pilotage du risque simple",
                             mode='lines', line=dict(dash='dash', color='red')
                         ))
                     
@@ -526,7 +518,7 @@ def main():
                         height=500,
                         template='plotly_white'
                     )
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, width="stretch")
                 else:
                     st.info("📌 Le grand 8 se dessinera ici au fur et à mesure de vos lancers.")
 
@@ -576,7 +568,7 @@ def main():
                     )
                     
                     st.markdown(f"<div style='text-align: center; font-size: 14px;'><b>{block['start_year']} - {block['end_year']}</b></div>", unsafe_allow_html=True)
-                    st.plotly_chart(mini_fig, use_container_width=True, config={'displayModeBar': False})
+                    st.plotly_chart(mini_fig, width="stretch", config={'displayModeBar': False})
                     st.markdown(f"<div style='text-align: center; color: {color}; font-size: 16px;'><b>{comp_ret*100:+.1f}%</b></div>", unsafe_allow_html=True)
                 else:
                     st.markdown(f"<div style='text-align: center; font-size: 14px; color: gray;'><b>Manche {i+1}</b></div>", unsafe_allow_html=True)
@@ -600,7 +592,7 @@ def main():
             "75% Stocks": "75% Actions",
             "50/50 Mix": "50% Actions",
             "25% Stocks": "25% Actions",
-            "Glidepath Strategy (75/50/25/100)": "Glidepath (75/50/25/100)"
+            "Pilotage du risque simple": "Pilotage du risque simple"
         }
         rev_strategy_options = {v: k for k, v in strategy_options.items()}
         
@@ -659,7 +651,7 @@ def main():
             "75% Stocks": [75, 75, 75, 75, 75, 75],
             "50/50 Mix": [50, 50, 50, 50, 50, 50],
             "25% Stocks": [25, 25, 25, 25, 25, 25],
-            "Glidepath Strategy (75/50/25/100)": [75, 50, 25, 100, 100, 100]
+            "Pilotage du risque simple": [75, 50, 25, 100, 100, 100]
         }
         alloc_seq = strategies_allocs[selected_env_strategy]
         blocks_seq = [blocks[i]['returns'] for i in st.session_state.selected_blocks]
@@ -690,13 +682,13 @@ def main():
             title=f"Éventail des résultats pour la stratégie : {selected_env_label}",
             xaxis_title="Année",
             yaxis_title="Caillasse en €",
-            yaxis_range=[-50000, 600000],
+            yaxis_range=[-50000, 500000],
             hovermode='x unified',
             height=500,
             template='plotly_white'
         )
         
-        st.plotly_chart(fig_env, use_container_width=True)
+        st.plotly_chart(fig_env, width="stretch")
         
 if __name__ == "__main__":
     main()
