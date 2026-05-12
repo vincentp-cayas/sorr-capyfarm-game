@@ -1,0 +1,40 @@
+Nous allons faire un jeu pour comprendre le concept de séquence des rendements et la nécessiter de piloter le risque de son portefeuille financier en fonction de ses objectifs.
+
+Voilà les règles du jeu :
+
+- Tu détiens 10000 € de capital de départ.
+- Tu économises 5000€ par an. Cela correspond à environ 20% de taux d’épargne sur un salaire médian.
+- Tu veux accomplir deux objectifs :
+    - Acheter un élevage de Capybaras dans 15 ans pour 75 000 €
+    - Donner un max de pognon à la fondation Capy dans 30 ans
+- Si tu n’as pas l’argent pour acheter l’élevage au bout de 15 ans, c’est l’échec et ton score est de 0. Sinon, ton score est le montant final de ton portefeuille.
+- Tu constitues ton portefeuille en faisant un mélange d’actions et de monétaire. Tu peux choisir l’allocation de ton portefeuille au départ et l’ajuster au bout de 5 ans, 10 ans, 15 ans (après l’achat), 20 et 25 ans. Tu dois donc prendre 6 décisions d’allocation, pour 6 périodes de 5 ans.
+- Tu pourras consulter les résultats de la période précédente avant de prendre ta décision pour la période.
+- On considère que tous les montants sont corrigés de l’inflation et que le portefeuille est rééquilibré tous les ans, avec ajout de l’épargne de l’année. On considère que les sommes conservées en monétaire suivent l’inflation.
+- Il n’y a pas de fiscalité ni de frais d’investissement dans cette simulation.
+- On va utiliser les rendements historiques des actions ajustés de l’inflation, mais avec un petit twist : à chaque étape, on va piocher au hasard un bloc 5 ans situé entre 1995 et 2025. Chaque bloc ne peut être pioché qu’une seule fois.
+
+Une fois que l’on a choisi l’allocation du portefeuille en début de période, on va calculer son évolution jusqu’à la fin de période. On va procéder par tranches annuelles, en considérant que chaque fin d’année :
+
+- on applique le rendement des actions
+- on rééquilibre le portefeuille sur l’allocation choisie en début de période,
+- on épargne 5000 €
+
+Comme on investit sur 30 ans, chaque simulation va affronter les mêmes conditions de marché, mais dans un ordre différent. Chaque euro investi en actions tout au long de la simulation produira exactement le même rendement final, dans toutes les simulations. 
+
+La subtilité, c’est que l’on épargne des euros au fil du temps et que l’on doit acheter l’élevage à un moment précis. C’est parce que l’on encaisse et que l’on décaisse de l’argent en cours de route que la séquence des rendements a de l’importance.
+
+On a deux zones dans l’UI : l’interface avec les contrôles et un graphe de restitution.
+
+Côté contrôles, on affiche la valeur actuelle du portefeuille à l’utilisateur (10000 € au premier tour). Il choisit un % d’allocation aux actions (curseur gradué de 10% en 10% entre 0 et 100%) et lance la simulation de la première tranche avec un bouton.
+
+Côté restitution, on construit un graphique en ajoutant à la courbe simulée le résultat des 5 années écoulées à chaque clic sur le bouton de simulation. Pour chaque année, on calcule l’évolution du portefeuille : application du rendement de l’année à la partie actions du portefeuille choisie en début de période, ajout d’épargne, décaissement de 75 000 € au bout de l’année 15 (on affiche le graphique sur 30 ans, même si l’on ne construit la série temporelle que 5 ans par 5 ans).
+
+Si on ne peut pas financer le décaissement en année 15, on stoppe la simulation et on affiche un message d’échec (bust).
+
+Une fois que l’on a simulé les 6 périodes ou busté, on affiche le résultat final (montant final du portefeuille ou 0 si on a busté) et la stratégie consistant à tout garder en cash. On affiche aussi des boutons permettant d’afficher d’autres equity curves en plus de celle du joueur :
+
+- Celle où on aurait suivi la même stratégie (% d’allocation) mais en ayant la séquence des rendements historiques
+- Une stratégie 100% actions, avec la séquence du joueur
+- Une stratégie 50/50 actions/cash, avec la séquence du joueur
+- Une stratégie 75/25 sur la 1ère période, 50/50 sur la seconde, 25/75 sur la troisième, puis 100% actions sur les 3 suivantes, avec la séquence du joueur.
