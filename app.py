@@ -605,14 +605,12 @@ def main():
         selected_env_strategy = rev_strategy_options[selected_env_label]
         env_data = envelopes[selected_env_strategy]
         
-        col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+        col_m1, col_m2, col_m3 = st.columns(3)
         with col_m1:
             st.metric("Taux de Faillite", f"{env_data['bust_rate']:.1f}%")
         with col_m2:
-            st.metric("Min final", f"{env_data['min'][-1]:,.0f} €".replace(",", " "))
-        with col_m3:
             st.metric("Médiane finale", f"{env_data['median'][-1]:,.0f} €".replace(",", " "))
-        with col_m4:
+        with col_m3:
             st.metric("Max final", f"{env_data['max'][-1]:,.0f} €".replace(",", " "))
         
         fig_env = go.Figure()
