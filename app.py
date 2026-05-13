@@ -7,11 +7,30 @@ from typing import List, Dict, Tuple
 import random
 import itertools
 
+import json
+import os
+
+class TextManager:
+    def __init__(self, texts_dict):
+        self.texts = texts_dict
+    def get(self, key):
+        return self.texts.get(key, f"[{key}]")
+
+def load_texts():
+    file_path = os.path.join(os.path.dirname(__file__), 'texts.json')
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+TEXTS = TextManager(load_texts())
+
 # ============================================================================
 # PAGE CONFIGURATION
 # ============================================================================
 st.set_page_config(
-    page_title="Dompter la séquence des rendements. Et des capybaras.",
+    page_title=TEXTS.get("page_title"),
     page_icon="🦫",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -82,6 +101,8 @@ def compute_strategy_envelopes(blocks):
             'bust_rate': (bust_count / len(sequences)) * 100
         }
     return results
+
+    
 
 # ============================================================================
 # SIMULATION ENGINE
@@ -283,70 +304,48 @@ def main():
     
     # Sidebar info
     with st.sidebar:
-        st.subheader(" Les Règles du Casino")
-        st.info("""
-        • **Magot de départ** : 10 000 €
-        • **Épargne annuelle** : 5 000 €/an
-        • **L'objectif décisif** : Sortir 85 000 € à l'année 15.
-        • **6 décisions** : Vous ajustez la voilure (actions/monétaire) tous les 5 ans.
-        • **Le marché** : 5 années historiques tirées au sort (1995-2025). Pas de triche.
-        • **Score** : Vos pépettes finales (0 si vous finissez sous les ponts).
-        """)
+        st.subheader(TEXTS.get("sidebar_title"))
+        st.info(TEXTS.get("sidebar_rules"))
     
     if st.session_state.current_view == 'intro':
-        st.title("🦫 Le Jeu de l'Élevage de Capybaras")
-        st.markdown("""
-        Bienvenue dans la vraie vie de l'investisseur ! On vous a sûrement déjà parlé de la magie des intérêts composés. 
-        Mais la Bourse, ce n'est pas un long fleuve tranquille : c'est un **grand 8**. 
-        
-        Découvrez par la pratique le fameux **Risque de Séquence des Rendements**.[1]
-        
-        **Votre Mission :**
-        - Dompter la volatilité pour réunir 85 000 € dans 15 ans et acheter votre élevage de capybaras.
-        - Faire grossir votre caillasse d'ici l'année 30 pour faire un don généreux à la Fondation Capybara.
-        
-        *L'astuce ? Vous ne pouvez pas prédire le marché. Mais vous pouvez ajuster vos voiles en choisissant votre niveau de risque à chaque manche.*
-        
-        ---
-        <small>[1] En jargon, c'est le risque que la scoumoune frappe pile au moment où vous avez besoin de votre argent. Et ça, ça fait très mal.</small>
-        """, unsafe_allow_html=True)
+        st.title(TEXTS.get("intro_title"))
+        st.markdown(TEXTS.get("intro_text"), unsafe_allow_html=True)
         
         st.markdown("<div style='text-align: center; font-size: 80px;'>🌾 🦫 🏡 💰</div>", unsafe_allow_html=True)
         st.write("")
         
         col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
         with col_btn2:
-            if st.button("🎮 Prendre les commandes", width="stretch"):
+            if st.button(TEXTS.get("btn_start"), width="stretch"):
                 st.session_state.current_view = 'game'
                 st.rerun()
 
 
     elif st.session_state.current_view == 'game':
-        st.title("🦫 Le Jeu de l'Élevage de Capybaras")
+        st.title(TEXTS.get("game_title"))
         
-        col1, col2 = st.columns([1, 2])
+        col1, col2 = st.columns([1, 2.5])
         
         with col1:
             if not st.session_state.game_over and not st.session_state.bust:
                 # Current period info
                 period_num = st.session_state.current_period + 1
-                st.write(f"**Manche : {period_num}/6**")
-                st.write(f"**Années : {period_num*5 - 4}-{period_num*5}**")
+                st.write(TEXTS.get("game_round").format(period_num))
                 
                 # Portfolio value display
                 current_portfolio = st.session_state.portfolio_values[-1] if st.session_state.portfolio_values else 10000
-                st.metric("Valeur de votre magot", f"{current_portfolio:,.0f} €".replace(",", " "))
+                st.metric(TEXTS.get("metric_portfolio"), f"{current_portfolio:,.0f} €".replace(",", " "))
                 
                 allocation = st.slider(
-                    "Dose d'actions en % (le moteur risqué)",
+                    TEXTS.get("slider_allocation"),
                     min_value=0,
                     max_value=100,
                     value=50,
                     step=10,
-                    help="0% = 100% Monétaire (le matelas), 100% = 100% Actions (le grand 8)"
+                    help=TEXTS.get("slider_help")
                 )
                 
-                if st.button("🎲 Voyons ce que les 5 prochaines années nous réservent", width="stretch"):
+                if st.button(TEXTS.get("btn_simulate"), width="stretch"):
                     available_blocks = [b for i, b in enumerate(blocks) if i not in st.session_state.selected_blocks]
                     
                     if available_blocks:
@@ -378,21 +377,28 @@ def main():
             
             # Results section
             if st.session_state.game_over or st.session_state.bust:
-                st.subheader("📈 Résultats Finaux")
+                st.subheader(TEXTS.get("results_title"))
                 
                 if st.session_state.bust:
-                    st.error("**FAILLITE ! Vous êtes lessivé. ❌**")
-                    st.write("La machine à laver du marché vous a essoré au pire moment. Vous n'avez pas les fonds pour l'élevage de capybaras...")
-                    st.metric("Score Final", "0 €")
+                    st.error(TEXTS.get("bust_title"))
+                    st.write(TEXTS.get("bust_text"))
+                    st.metric(TEXTS.get("score_final"), "0 €")
                 else:
                     final_value = st.session_state.final_value
-                    st.success("**SUCCÈS ! Papy Capy est fier de vous. ✅**")
-                    st.write("Vous avez survécu aux montagnes russes et accumulé un très beau magot !")
-                    st.metric("Taille finale de la boule de neige", f"{final_value:,.0f} €".replace(",", " "))
+                    st.success(TEXTS.get("success_title"))
+                    st.write(TEXTS.get("success_text"))
+                    st.metric(TEXTS.get("metric_final_size"), f"{final_value:,.0f} €".replace(",", " "))
                 
-                if st.button("🔄 Rejouer", width="stretch"):
-                    st.session_state.clear()
-                    st.rerun()
+                col_btn1, col_btn2 = st.columns(2)
+                with col_btn1:
+                    if st.button(TEXTS.get("btn_replay"), use_container_width=True):
+                        st.session_state.clear()
+                        st.session_state.current_view = 'game'
+                        st.rerun()
+                with col_btn2:
+                    if st.button(TEXTS.get("btn_analysis"), use_container_width=True):
+                        st.session_state.current_view = 'analysis'
+                        st.rerun()
         
         with col2:
             chart_container = st.container()
@@ -405,25 +411,21 @@ def main():
             show_75stocks = False
             
             if st.session_state.game_over or st.session_state.bust:
-                st.write("**Où vous situez-vous par rapport aux autres ?**")
-                col_a, col_b, col_c = st.columns(3)
-                with col_a:
-                    show_allcash = st.checkbox("100% Monétaire", value=True)
-                    show_25stocks = st.checkbox("25% Actions")
-                with col_b:
-                    show_5050 = st.checkbox("50% Actions")
-                    show_75stocks = st.checkbox("75% Actions")
-                with col_c:
-                    show_100stocks = st.checkbox("100% Actions")
-                    show_target = st.checkbox("Pilotage du risque simple")
+                st.write(TEXTS.get("compare_title"))
+                col1, col2, col3, col4, col5, col6 = st.columns(6)
+                with col1:
+                    show_allcash = st.checkbox(TEXTS.get("strategy_cash"), value=True)
+                with col2:
+                    show_25stocks = st.checkbox(TEXTS.get("strategy_25"))
+                with col3:
+                    show_5050 = st.checkbox(TEXTS.get("strategy_50"))
+                with col4:
+                    show_75stocks = st.checkbox(TEXTS.get("strategy_75"))
+                with col5:
+                    show_100stocks = st.checkbox(TEXTS.get("strategy_100"))
+                with col6:
+                    show_target = st.checkbox(TEXTS.get("strategy_target"))
                 
-                st.write("")
-                col_spacer, col_btn = st.columns([2, 1])
-                with col_btn:
-                    if st.button("📊 Les coulisses (Décortiquer)", width="stretch"):
-                        st.session_state.current_view = 'analysis'
-                        st.rerun()
-            
             with chart_container:
                 if len(st.session_state.all_yearly_values) > 1:
                     years = list(range(len(st.session_state.all_yearly_values)))
@@ -432,25 +434,27 @@ def main():
                     fig.add_trace(go.Scatter(
                         x=years,
                         y=st.session_state.all_yearly_values,
-                        name="Votre Portefeuille",
+                        name=TEXTS.get("chart_your_portfolio"),
                         mode='lines',
                         line=dict(color='#1f77b4', width=3),
                         fill='tozeroy',
                         fillcolor='rgba(31, 119, 180, 0.2)'
                     ))
                     
+                    num_periods = len(st.session_state.selected_blocks)
+
                     if st.session_state.game_over or st.session_state.bust:
-                        num_periods = len(st.session_state.selected_blocks)
                         
                         if show_allcash:
                             all_cash_values = [10000]
+
                             for year in range(1, len(st.session_state.all_yearly_values)):
                                 if year == 15:
                                     all_cash_values.append(all_cash_values[-1] + 5000 - 85000)
                                 else:
                                     all_cash_values.append(all_cash_values[-1] + 5000)
                             fig.add_trace(go.Scatter(
-                                x=years, y=all_cash_values, name="100% Monétaire",
+                                    x=years, y=all_cash_values, name=TEXTS.get("strategy_cash"),
                                 mode='lines', line=dict(dash='dash', color='green')
                             ))
                         
@@ -459,7 +463,7 @@ def main():
                         alloc_seq = [25] * num_periods
                         vals_25, _, _, _, _ = simulator.simulate_full_game(alloc_seq, blocks_seq)
                         fig.add_trace(go.Scatter(
-                            x=list(range(len(vals_25))), y=vals_25, name="25% Actions",
+                            x=list(range(len(vals_25))), y=vals_25, name=TEXTS.get("strategy_25"),
                             mode='lines', line=dict(dash='dash', color='teal')
                         ))
                     
@@ -468,7 +472,7 @@ def main():
                         alloc_seq = [100] * num_periods
                         vals_100, _, _, _, _ = simulator.simulate_full_game(alloc_seq, blocks_seq)
                         fig.add_trace(go.Scatter(
-                            x=list(range(len(vals_100))), y=vals_100, name="100% Actions",
+                            x=list(range(len(vals_100))), y=vals_100, name=TEXTS.get("strategy_100"),
                             mode='lines', line=dict(dash='dash', color='purple')
                         ))
                     
@@ -477,7 +481,7 @@ def main():
                         alloc_seq = [50] * num_periods
                         vals_5050, _, _, _, _ = simulator.simulate_full_game(alloc_seq, blocks_seq)
                         fig.add_trace(go.Scatter(
-                            x=list(range(len(vals_5050))), y=vals_5050, name="50% Actions",
+                            x=list(range(len(vals_5050))), y=vals_5050, name=TEXTS.get("strategy_50"),
                             mode='lines', line=dict(dash='dash', color='orange')
                         ))
                     
@@ -486,7 +490,7 @@ def main():
                         alloc_seq = [75] * num_periods
                         vals_75, _, _, _, _ = simulator.simulate_full_game(alloc_seq, blocks_seq)
                         fig.add_trace(go.Scatter(
-                            x=list(range(len(vals_75))), y=vals_75, name="75% Actions",
+                            x=list(range(len(vals_75))), y=vals_75, name=TEXTS.get("strategy_75"),
                             mode='lines', line=dict(dash='dash', color='brown')
                         ))
                     
@@ -500,43 +504,48 @@ def main():
                         else: alloc_seq = [75]
                         vals_target, _, _, _, _ = simulator.simulate_full_game(alloc_seq, blocks_seq)
                         fig.add_trace(go.Scatter(
-                            x=list(range(len(vals_target))), y=vals_target, name="Pilotage du risque simple",
+                            x=list(range(len(vals_target))), y=vals_target, name=TEXTS.get("strategy_target"),
                             mode='lines', line=dict(dash='dash', color='red')
                         ))
                     
-                    fig.add_vline(x=15, line_dash="dash", line_color="red", 
-                                 annotation_text="Achat !", annotation_position="top right")
+                    fig.add_vline(x=15, line_dash="dash", line_color="red")
                     
-                    fig.add_hline(y=85000, line_dash="dash", line_color="orange",
-                                 annotation_text="Cible (85 k€)", annotation_position="right")
+                    fig.add_trace(go.Scatter(
+                        x=[15],
+                        y=[85000],
+                        mode='markers+text',
+                        marker=dict(color='red', size=10),
+                        text=[TEXTS.get("chart_farm_cost")],
+                        textposition="top center",
+                        showlegend=False,
+                        hoverinfo='skip'
+                    ))
                     
                     fig.update_layout(
-                        title="Votre parcours de zinzins sur 30 Ans",
-                        xaxis_title="Année",
-                        yaxis_title="Pépettes accumulées (€)",
+                        title=TEXTS.get("chart_main_title"),
+                        xaxis_title=TEXTS.get("chart_x_axis"),
+                        yaxis_title=TEXTS.get("chart_y_axis"),
                         hovermode='x unified',
-                        height=500,
+                        height=380,
+                        margin=dict(t=50, b=20, l=20, r=20),
+                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
                         template='plotly_white'
                     )
                     st.plotly_chart(fig, width="stretch")
                 else:
-                    st.info("📌 Le grand 8 se dessinera ici au fur et à mesure de vos lancers.")
+                    st.info(TEXTS.get("info_waiting_chart"))
 
     elif st.session_state.current_view == 'analysis':
-        st.title("📊 Les coulisses : on décortique tout")
+        st.title(TEXTS.get("analysis_title"))
         
-        if st.button("⬅️ Retour au casino"):
+        if st.button(TEXTS.get("btn_back_casino")):
             st.session_state.current_view = 'game'
             st.rerun()
             
         st.divider()
         
-        st.subheader("Le hasard de la pioche (Votre Séquence)")
-        st.markdown("""
-        **Explication :** En investissement, la destination compte, mais le chemin aussi. 
-        Un krach boursier quand on accumule ses billes, c'est les soldes. Mais un krach juste avant de devoir décaisser 85 000 € pour vos capybaras (les séquences qui font transpirer), c'est la tuile absolue. 
-        C’est ça, le risque de séquence : être forcé de vendre ses actifs dans le creux de la vague. Une fois ce cap périlleux passé, le but est de maximiser la taille de la boule de neige, puisqu'on ne risque plus la ruine.
-        """)
+        st.subheader(TEXTS.get("analysis_seq_title"))
+        st.markdown(TEXTS.get("analysis_seq_text"))
         
         seq_cols = st.columns(6)
         for i in range(6):
@@ -571,33 +580,26 @@ def main():
                     st.plotly_chart(mini_fig, width="stretch", config={'displayModeBar': False})
                     st.markdown(f"<div style='text-align: center; color: {color}; font-size: 16px;'><b>{comp_ret*100:+.1f}%</b></div>", unsafe_allow_html=True)
                 else:
-                    st.markdown(f"<div style='text-align: center; font-size: 14px; color: gray;'><b>Manche {i+1}</b></div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='text-align: center; font-size: 14px; color: gray;'><b>{TEXTS.get('analysis_round_missing').format(i+1)}</b></div>", unsafe_allow_html=True)
                     st.markdown("<div style='height: 60px; display: flex; align-items: center; justify-content: center; background-color: rgba(128,128,128,0.1); border-radius: 5px; margin: 10px 0; color: gray;'>?</div>", unsafe_allow_html=True)
         
         st.divider()
-        st.subheader("🌍 L'éventail des possibles (Vos probabilités)")
-        st.markdown("""
-        **Comment lire ce graphique :** 
-        L'image des intérêts composés qui grimpent de façon lisse est une illusion. Dans la vraie vie, vos rendements se situent dans un éventail de probabilités. Ce graphique montre les 720 trajectoires possibles de notre jeu. 
-        - La **zone bleue** représente l'éventail des résultats selon votre chance. La ligne du bas, c'est le championnat de la scoumoune. Celle du haut, c'est l'hyper-chance.
-        - La **ligne bleue épaisse** est la médiane (ce qui se passe au milieu).
-        - La **ligne noire en pointillés** est ce qu'aurait donné cette stratégie avec *votre* tirage (votre veine ou votre scoumoune exacte).
-        - La **ligne orange**, c’est *votre* véritable parcours de zinzins.
-        """)
+        st.subheader(TEXTS.get("analysis_prob_title"))
+        st.markdown(TEXTS.get("analysis_prob_intro"))
         
         envelopes = compute_strategy_envelopes(blocks)
         
         strategy_options = {
-            "100% Stocks": "100% Actions",
-            "75% Stocks": "75% Actions",
-            "50/50 Mix": "50% Actions",
-            "25% Stocks": "25% Actions",
-            "Pilotage du risque simple": "Pilotage du risque simple"
+            "100% Stocks": TEXTS.get("strategy_100"),
+            "75% Stocks": TEXTS.get("strategy_75"),
+            "50/50 Mix": TEXTS.get("strategy_50"),
+            "25% Stocks": TEXTS.get("strategy_25"),
+            "Pilotage du risque simple": TEXTS.get("strategy_target")
         }
         rev_strategy_options = {v: k for k, v in strategy_options.items()}
         
         selected_env_label = st.radio(
-            "Sélectionnez une stratégie pour voir son enveloppe :",
+            TEXTS.get("analysis_select_strategy"),
             options=list(strategy_options.values()),
             horizontal=True
         )
@@ -607,18 +609,18 @@ def main():
         
         col_m1, col_m2, col_m3 = st.columns(3)
         with col_m1:
-            st.metric("Taux de Faillite", f"{env_data['bust_rate']:.1f}%")
+            st.metric(TEXTS.get("metric_bust_rate"), f"{env_data['bust_rate']:.1f}%")
         with col_m2:
-            st.metric("Médiane finale", f"{env_data['median'][-1]:,.0f} €".replace(",", " "))
+            st.metric(TEXTS.get("metric_median_final"), f"{env_data['median'][-1]:,.0f} €".replace(",", " "))
         with col_m3:
-            st.metric("Max final", f"{env_data['max'][-1]:,.0f} €".replace(",", " "))
+            st.metric(TEXTS.get("metric_max_final"), f"{env_data['max'][-1]:,.0f} €".replace(",", " "))
         
         fig_env = go.Figure()
         
         fig_env.add_trace(go.Scatter(
             x=list(range(31)),
             y=env_data['min'],
-            name="Pire Cas",
+            name=TEXTS.get("chart_worst_case"),
             mode='lines',
             line=dict(width=0),
             showlegend=True
@@ -627,7 +629,7 @@ def main():
         fig_env.add_trace(go.Scatter(
             x=list(range(31)),
             y=env_data['max'],
-            name="Meilleur Cas",
+            name=TEXTS.get("chart_best_case"),
             fill='tonexty',
             fillcolor='rgba(31, 119, 180, 0.2)',
             mode='lines',
@@ -638,7 +640,7 @@ def main():
         fig_env.add_trace(go.Scatter(
             x=list(range(31)),
             y=env_data['median'],
-            name="Médiane",
+            name=TEXTS.get("chart_median"),
             mode='lines',
             line=dict(color='rgb(31, 119, 180)', width=3),
             showlegend=True
@@ -658,7 +660,7 @@ def main():
         fig_env.add_trace(go.Scatter(
             x=list(range(len(vals_seq))),
             y=vals_seq,
-            name=f"{selected_env_label} (Votre Séquence)",
+            name=TEXTS.get("chart_your_sequence").format(selected_env_label),
             mode='lines',
             line=dict(color='black', width=2, dash='dash'),
             showlegend=True
@@ -667,19 +669,29 @@ def main():
         fig_env.add_trace(go.Scatter(
             x=list(range(len(st.session_state.all_yearly_values))),
             y=st.session_state.all_yearly_values,
-            name="Votre Portefeuille",
+            name=TEXTS.get("chart_your_portfolio"),
             mode='lines',
             line=dict(color='#ff7f0e', width=3),
             showlegend=True
         ))
         
-        fig_env.add_vline(x=15, line_dash="dash", line_color="red", opacity=0.5, annotation_text="Achat")
-        fig_env.add_hline(y=85000, line_dash="dash", line_color="orange", opacity=0.5, annotation_text="Cible")
+        fig_env.add_vline(x=15, line_dash="dash", line_color="red", opacity=0.5)
+        
+        fig_env.add_trace(go.Scatter(
+            x=[15],
+            y=[85000],
+            mode='markers+text',
+            marker=dict(color='red', size=10),
+            text=[TEXTS.get("chart_farm_cost")],
+            textposition="top center",
+            showlegend=False,
+            hoverinfo='skip'
+        ))
         
         fig_env.update_layout(
-            title=f"Éventail des résultats pour la stratégie : {selected_env_label}",
-            xaxis_title="Année",
-            yaxis_title="Caillasse en €",
+            title=TEXTS.get("chart_env_title").format(selected_env_label),
+            xaxis_title=TEXTS.get("chart_x_axis"),
+            yaxis_title=TEXTS.get("chart_env_y_axis"),
             yaxis_range=[-50000, 500000],
             hovermode='x unified',
             height=500,
@@ -688,5 +700,7 @@ def main():
         
         st.plotly_chart(fig_env, width="stretch")
         
+        st.info(TEXTS.get("analysis_prob_legend"))
+
 if __name__ == "__main__":
     main()
